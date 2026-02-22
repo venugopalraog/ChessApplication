@@ -11,6 +11,47 @@ The codebase is structured to separate the core business rules from UI and frame
 
 ### Model-View-Intent (MVI)
 To manage the state of the chessboard and the game reliably, the UI follows the MVI pattern (Unidirectional Data Flow):
+
+```mermaid
+graph TD
+    %% UI Components
+    subgraph Presentation Layer [Presentation Layer: Jetpack Compose]
+        UI[GameScreen & ChessBoardView]
+    end
+
+    %% State Management
+    subgraph View Model [ViewModel Layer]
+        VM[GameViewModel]
+        State[(GameViewState)]
+    end
+
+    %% Domain Logic
+    subgraph Domain Layer [Domain Layer: Pure Kotlin]
+        Engine[GameEngine]
+        AI[ChessAI]
+        Models[GameState, Board, Piece]
+    end
+
+    %% Flow Dynamics
+    UI -- 1. Emits GameIntent --> VM
+    VM -- 2. Evaluates valid moves --> Engine
+    Engine -- 3. Reads / Mutates --> Models
+    VM -- "4. Triggers AI (if Black's Turn)" --> AI
+    AI -- 5. Calculates Best Move --> Engine
+    Models -- 6. Returns updated GameState --> VM
+    VM -- 7. Updates StateFlow --> State
+    State -- 8. Recomposes View --> UI
+
+    classDef ui fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff;
+    classDef vm fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff;
+    classDef domain fill:#FF9800,stroke:#F57C00,stroke-width:2px,color:#fff;
+    classDef data fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff;
+
+    class UI ui
+    class VM,State vm
+    class Engine,AI,Models domain
+```
+
 - **Intent**: User actions (e.g., clicking a square to select a piece, or clicking to make a move) are modeled as `GameIntent` objects.
 - **Model (ViewModel)**: The `GameViewModel` receives these intents, processes them using the Domain layer's `GameEngine`, and updates a single source of truth: the `GameViewState`.
 - **View**: The Jetpack Compose UI observes the `GameViewState`. Whenever the state changes (e.g., piece moved, checkmate achieved), the UI recomposes automatically to reflect the new state.
